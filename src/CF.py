@@ -1,7 +1,9 @@
+# coding=utf-8
 import sys
 import math
 from operator import itemgetter
 from decimal import Decimal, ROUND_HALF_UP
+
 
 from utils import *
 from query import Query
@@ -13,7 +15,7 @@ def read_input_data():
     item_number, user_number = sys.stdin.readline().split()
 
     # TODO 10 is min value
-    checkintvalue(item_number, 3, 100, 'N must be between 10 and 100!')
+    checkintvalue(item_number, 5, 100, 'N must be between 10 and 100!')
     checkintvalue(user_number, 5, 100, 'M must be between 10 and 100!')
 
     data['item_number'] = int(item_number)
@@ -59,9 +61,10 @@ def row_subtract_mean(row):
 def calc_rating(query, matrix, matrix_avg):
     static_row = matrix_avg[query.item_idx]
 
-    similarities = []
+    similarities = []   # List of tuples (matrix_item_idx, similarity)
+
     for x in xrange(len(matrix_avg)):
-        if x != query.item_idx:
+        if x != query.item_idx and matrix[x][query.user_idx] != 'X':
             sim = calc_cosine_similarity(static_row, matrix_avg[x])
             if sim >= 0:
                 similarities.append((x, sim))
@@ -73,29 +76,18 @@ def calc_rating(query, matrix, matrix_avg):
     sum_sim = sum([pair[1] for pair in first_k_similarities])
     rating_sim = 0.0
     for sim in first_k_similarities:
-        if matrix[sim[0]][query.user_idx] != 'X':
-            rating_sim += (matrix[sim[0]][query.user_idx] * sim[1])
+        rating_sim += (matrix[sim[0]][query.user_idx] * sim[1])
 
     return rating_sim / sum_sim
 
 
+# sim = rx • ry / (||rx|| * ||ry||)
 def calc_cosine_similarity(rx, ry):
-    # sim = rx * ry / (||rx|| * ||ry||)
+    rx_norm = math.sqrt(reduce((lambda x, y: x + math.pow(y if y != 'X' else 0, 2)), rx, 0))
+    ry_norm = math.sqrt(reduce((lambda x, y: x + math.pow(y if y != 'X' else 0, 2)), ry, 0))
+    dot_product = reduce((lambda x, y: x + (y[0] * y[1] if y[0] != 'X' and y[1] != 'X' else 0)), zip(rx, ry), 0)
 
-    def reduce_abs(x, y):
-        real_y = y if y != 'X' else 0
-        return x + (real_y*real_y)
-
-    rx_abs = math.sqrt(reduce(reduce_abs, rx, 0))
-    ry_abs = math.sqrt(reduce(reduce_abs, ry, 0))
-
-    # TODO zip + reduce
-    dot_product = 0
-    for i in xrange(len(rx)):
-        if rx[i] != 'X' and ry[i] != 'X':
-            dot_product += rx[i] * ry[i]
-
-    return dot_product / (rx_abs * ry_abs)
+    return dot_product / (rx_norm * ry_norm)
 
 
 def format_rating(rating):
