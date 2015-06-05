@@ -50,53 +50,33 @@ def read_input_data():
 
 
 def row_subtract_mean(row):
-    defined_val_num = 0
-    row_sum = 0.0
+    tmp_row = filter(lambda x: x != 'X', row)
+    mean = sum(tmp_row) / float(len(tmp_row))
 
-    # Find mean, counting only non X values
-    for num in row:
-        if num != 'X':
-            defined_val_num += 1
-            row_sum += num
-
-    mean = row_sum / defined_val_num
-    row_mean = map(lambda x: x if x == 'X' else x-mean, row)
-
-    return row_mean
+    return map(lambda x: x-mean if x != 'X' else 'X', row)
 
 
 def calc_rating(query, matrix, matrix_avg):
     static_row = matrix_avg[query.item_idx]
 
     similarities = []
-
     for x in xrange(len(matrix_avg)):
         if x != query.item_idx:
             sim = calc_cosine_similarity(static_row, matrix_avg[x])
-            # if sim >= 0:
-            similarities.append((x, sim))
+            if sim >= 0:
+                similarities.append((x, sim))
 
-    # print 'Similarities calculated'
-    # print similarities
-    # print 'Sorting...'
     similarities = sorted(similarities, key=itemgetter(1), reverse=True)
-    # print similarities
 
-    # print 'First K (%d)' % query.k
     first_k_similarities = similarities[: (query.k if query.k <= len(similarities) else len(similarities))]
-    # print first_k_similarities
 
-    sum_similarities = sum([pair[1] for pair in first_k_similarities])
-    rating = 0.0
-    # print 'Rating calc..'
+    sum_sim = sum([pair[1] for pair in first_k_similarities])
+    rating_sim = 0.0
     for sim in first_k_similarities:
         if matrix[sim[0]][query.user_idx] != 'X':
-            # print '%f * %f' % (item_user_matrix[sim[0]][query.user_idx], sim[1])
-            rating += (matrix[sim[0]][query.user_idx] * sim[1])
+            rating_sim += (matrix[sim[0]][query.user_idx] * sim[1])
 
-    # print 'Sum sim', sum_similarities
-    # print 'Rating %f' % (rating / sum_similarities)
-    return rating / sum_similarities
+    return rating_sim / sum_sim
 
 
 def calc_cosine_similarity(rx, ry):
@@ -115,11 +95,6 @@ def calc_cosine_similarity(rx, ry):
         if rx[i] != 'X' and ry[i] != 'X':
             dot_product += rx[i] * ry[i]
 
-    # print 'Cosine', rx, ry
-    # print rx_abs, ry_abs
-    # print dot_product
-    # print 'Res', (dot_product / (rx_abs * ry_abs))
-
     return dot_product / (rx_abs * ry_abs)
 
 
@@ -128,34 +103,22 @@ def format_rating(rating):
 
 
 def main():
-    # Read test file
     data = read_input_data()
 
-    queries = data['queries']
     item_item_matrix = data['item_user_matrix']
     item_item_matrix_avg = map(row_subtract_mean, item_item_matrix)
-    print item_item_matrix_avg
 
-    user_user_matrix = zip(*item_item_matrix)
+    user_user_matrix = zip(*item_item_matrix)       # Transposing matrix
     user_user_matrix_avg = map(row_subtract_mean, user_user_matrix)
 
-    # print 'Transposed:', user_user_matrix
-    # print 'Transposed: avg', user_user_matrix_avg
-
-    # print item_user_matrix_avg
-
     # Compute every query
-    for query in queries:
-        # print
-        # print 'Query:', query
+    for query in data['queries']:
         rating = 0.0
 
         if QueryType.ITEM_ITEM == query.query_type:
-            # print 'Item/item'
             rating = calc_rating(query, item_item_matrix, item_item_matrix_avg)
 
         elif QueryType.USER_USER == query.query_type:
-            # print 'User/user'
             rating = calc_rating(query, user_user_matrix, user_user_matrix_avg)
 
         print format_rating(rating)
