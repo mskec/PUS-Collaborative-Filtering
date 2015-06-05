@@ -42,7 +42,7 @@ def read_input_data():
         checkintvalue(query[2], 0, 1, 'Type must be 0 or 1')
         checkintvalue(query[3], 1, min(data['item_number'], data['user_number']))
 
-        if query[2] == 1:
+        if query[2] == '1':
             query[0], query[1] = query[1], query[0]
 
         query_type = QueryType.ITEM_ITEM if int(query[2]) == 0 else QueryType.USER_USER

@@ -1,5 +1,7 @@
 # Created by https://www.gitignore.io
 
+integration_tests/*.my.out
+
 ### PyCharm ###
 # Covers JetBrains IDEs: IntelliJ, RubyMine, PhpStorm, AppCode, PyCharm
 
