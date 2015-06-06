@@ -13,7 +13,7 @@ function run_test_case() {
     fi
 
     echo -n -e "Test $1"
-    python ../src/CF.py < R$1.in > R$1.my.out
+    python ../src/CF.py < R$1.in > R$1.my.out 2> /dev/null
     diff -q R$1.out R$1.my.out > /dev/null
     if [ $? -eq 0 ]; then
       echo -e "${G} passed! ${N}"

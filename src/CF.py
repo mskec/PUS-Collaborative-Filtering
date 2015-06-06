@@ -6,8 +6,10 @@ from decimal import Decimal, ROUND_HALF_UP
 
 
 from utils import *
-from query import Query
-from query import QueryType
+
+
+class QueryType():
+    ITEM_ITEM, USER_USER = range(2)
 
 
 def read_input_data():
@@ -21,13 +23,8 @@ def read_input_data():
     data['item_number'] = int(item_number)
     data['user_number'] = int(user_number)
 
-    data['item_user_matrix'] = []
-    # data['item_user_matrix'] = [sys.stdin.readline().split() for _ in xrange(data['item_number'])]
-    for _ in xrange(data['item_number']):
-        line = sys.stdin.readline().split()
-        for x in xrange(len(line)):
-            line[x] = int(line[x]) if line[x] != 'X' else line[x]       # TODO this can be done with map
-        data['item_user_matrix'].append(line)
+    convert_to_int = lambda c: int(c) if c != 'X' else c
+    data['item_user_matrix'] = [map(convert_to_int, sys.stdin.readline().split()) for _ in xrange(data['item_number'])]
 
     query_number = sys.stdin.readline()
     checkintvalue(query_number, 1, 100, 'Q must be between 1 and 100!')
@@ -45,8 +42,11 @@ def read_input_data():
         if query[2] == '1':
             query[0], query[1] = query[1], query[0]
 
-        query_type = QueryType.ITEM_ITEM if int(query[2]) == 0 else QueryType.USER_USER
-        data['queries'].append(Query(int(query[0])-1, int(query[1])-1, query_type, int(query[3])))
+        query_type = QueryType.ITEM_ITEM if query[2] == '0' else QueryType.USER_USER
+
+        data['queries'].append(
+            {'item_idx': int(query[0])-1, 'user_idx': int(query[1])-1, 'query_type': query_type, 'k': int(query[3])}
+        )
 
     return data
 
@@ -59,24 +59,24 @@ def row_subtract_mean(row):
 
 
 def calc_rating(query, matrix, matrix_avg):
-    static_row = matrix_avg[query.item_idx]
+    static_row = matrix_avg[query['item_idx']]
 
     similarities = []   # List of tuples (matrix_item_idx, similarity)
 
     for x in xrange(len(matrix_avg)):
-        if x != query.item_idx and matrix[x][query.user_idx] != 'X':
+        if x != query['item_idx'] and matrix[x][query['user_idx']] != 'X':
             sim = calc_cosine_similarity(static_row, matrix_avg[x])
             if sim >= 0:
                 similarities.append((x, sim))
 
     similarities = sorted(similarities, key=itemgetter(1), reverse=True)
 
-    first_k_similarities = similarities[: (query.k if query.k <= len(similarities) else len(similarities))]
+    first_k_similarities = similarities[: (query['k'] if query['k'] <= len(similarities) else len(similarities))]
 
     sum_sim = sum([pair[1] for pair in first_k_similarities])
     rating_sim = 0.0
     for sim in first_k_similarities:
-        rating_sim += (matrix[sim[0]][query.user_idx] * sim[1])
+        rating_sim += (matrix[sim[0]][query['user_idx']] * sim[1])
 
     return rating_sim / sum_sim
 
@@ -107,10 +107,10 @@ def main():
     for query in data['queries']:
         rating = 0.0
 
-        if QueryType.ITEM_ITEM == query.query_type:
+        if QueryType.ITEM_ITEM == query['query_type']:
             rating = calc_rating(query, item_item_matrix, item_item_matrix_avg)
 
-        elif QueryType.USER_USER == query.query_type:
+        elif QueryType.USER_USER == query['query_type']:
             rating = calc_rating(query, user_user_matrix, user_user_matrix_avg)
 
         print format_rating(rating)
